@@ -17,5 +17,11 @@ app.use((err: ApiError, req: express.Request, res: express.Response, next: expre
     res.status(status).json({ success: false, message: err.message, errors: err.errors })
 })
 
+app.get("/", (req, res) => {
+    res.json({
+        success: true,
+        message: "Backend is running 🚀",
+    });
+});
 
 export default app;
