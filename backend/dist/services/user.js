@@ -30,6 +30,7 @@ export const generateTemporaryToken = () => {
 };
 export const findUserByEmail = async (email) => {
     const [user] = await db.select().from(users).where(eq(users.email, email));
+    console.log(user);
     return user ?? null;
 };
 export const findUserById = async (id) => {
@@ -49,6 +50,13 @@ export const createUser = async (data) => {
 };
 export const updateUser = async (id, data) => {
     const [user] = await db.update(users).set(data).where(eq(users.id, id)).returning();
+    if (!user) {
+        throw new Error('User not found');
+    }
+    return user;
+};
+export const deleteuser = async (id) => {
+    const [user] = await db.delete(users).where(eq(users.id, id)).returning();
     if (!user) {
         throw new Error('User not found');
     }

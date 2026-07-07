@@ -17,5 +17,6 @@ declare const refreshAccessToken: (req: Request, res: Response, next: import("ex
 declare const forgotPasswordRequest: (req: Request, res: Response, next: import("express").NextFunction) => void;
 declare const changeCurrentPassword: (req: Request, res: Response, next: import("express").NextFunction) => void;
 declare const getCurrentUser: (req: Request, res: Response, next: import("express").NextFunction) => void;
+export declare const deleteUser: (req: Request, res: Response, next: import("express").NextFunction) => void;
 export { changeCurrentPassword, forgotPasswordRequest, getCurrentUser, loginUser, logoutUser, refreshAccessToken, registerUser, resendEmailVerification, resetForgottenPassword, verifyEmail, };
 //# sourceMappingURL=auth.controllers.d.ts.map

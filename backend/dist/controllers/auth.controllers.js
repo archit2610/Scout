@@ -2,7 +2,7 @@ import { asyncHandler } from "../utils/async-handler.js";
 import { ApiError } from "../utils/api-error.js";
 import { ApiResponse } from "../utils/api-response.js";
 import { emailVerificationMailgenContent, sendEmail, forgotPasswordMailgenContent } from "../utils/mail.js";
-import { findUserByEmail, findUserById, createUser, updateUser, isPasswordCorrect, generateAccessToken, generateRefreshToken, generateTemporaryToken, hashPassword } from '../services/user.js';
+import { findUserByEmail, findUserById, createUser, updateUser, isPasswordCorrect, generateAccessToken, generateRefreshToken, generateTemporaryToken, hashPassword, deleteuser } from '../services/user.js';
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import { db } from "../db/index.js";
@@ -36,7 +36,7 @@ const registerUser = asyncHandler(async (req, res) => {
     await sendEmail({
         email,
         subject: "Verify your email",
-        mailgenContent: emailVerificationMailgenContent(username, `/api/v1/healthcheck/verify/${unHashedToken}`),
+        mailgenContent: emailVerificationMailgenContent(username, `/api/v1/verify/${unHashedToken}`),
     });
     const newuser = await findUserById(user.id);
     if (!newuser) {
@@ -73,7 +73,12 @@ const loginUser = asyncHandler(async (req, res) => {
     }, 'User logged in succesfully'));
 });
 const logoutUser = asyncHandler(async (req, res) => {
-    await updateUser(req.user.id, { refreshToken: undefined });
+    try {
+        await updateUser(req.user.id, { refreshToken: undefined });
+    }
+    catch (err) {
+        console.log(err);
+    }
     res.status(200)
         .clearCookie("accessToken", options)
         .clearCookie("refreshToken", options)
@@ -81,10 +86,15 @@ const logoutUser = asyncHandler(async (req, res) => {
 });
 const verifyEmail = asyncHandler(async (req, res) => {
     const { token } = req.params;
+    console.log(token);
+    console.log("1");
     if (!token) {
         throw new ApiError(400, 'Invalid or Expiry token');
     }
+    console.log("2");
     const hashedtoken = crypto.createHash("sha256").update(token).digest("hex");
+    console.log(hashedtoken);
+    //console.log(users.emailVerificationToken)
     const [user] = await db
         .select()
         .from(users)
@@ -101,7 +111,9 @@ const verifyEmail = asyncHandler(async (req, res) => {
     console.log('Is user email verified: ', user.isEmailVerified);
 });
 const resendEmailVerification = asyncHandler(async (req, res) => {
-    const { email, username } = req.body;
+    const { email } = req.body;
+    if (!email)
+        throw new ApiError(400, 'email not found');
     const user = await findUserByEmail(email);
     if (!user)
         throw new ApiError(400, 'User not found');
@@ -110,12 +122,13 @@ const resendEmailVerification = asyncHandler(async (req, res) => {
         emailVerificationToken: hashedToken,
         emailVerificationExpiry: tokenExpiry,
     });
+    const username = user.username;
     await sendEmail({
         email,
         subject: "Verify your email",
-        mailgenContent: emailVerificationMailgenContent(username, `/api/v1/healthcheck/verify/${unHashedToken}`),
+        mailgenContent: emailVerificationMailgenContent(username, `/api/v1/verify/${unHashedToken}`),
     });
-    res.status(200).json(new ApiResponse(200, {}, 'Verification email sent'));
+    res.status(200).json(new ApiResponse(200, { user }, 'Verification email sent'));
 });
 const resetForgottenPassword = asyncHandler(async (req, res) => {
     const { newPassword } = req.body;
@@ -161,7 +174,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     res
         .status(200)
         .cookie("accessToken", accessToken, options)
-        .cookie("refreshoken", refreshToken, options)
+        .cookie("refreshToken", refreshToken, options)
         .json(new ApiResponse(200, { accessToken, refreshtoken: refreshToken }, "Access token refreshed"));
 });
 const forgotPasswordRequest = asyncHandler(async (req, res) => {
@@ -177,9 +190,10 @@ const forgotPasswordRequest = asyncHandler(async (req, res) => {
     });
     await sendEmail({
         email,
-        subject: "Verify your email",
-        mailgenContent: forgotPasswordMailgenContent(username, `/api/v1/healthcheck/forgotpassword/${unHashedToken}`),
+        subject: "Reset your password",
+        mailgenContent: forgotPasswordMailgenContent(username, `/api/v1/healthcheck/forgot-password/${unHashedToken}`),
     });
+    res.status(200).json(new ApiResponse(200, {}, "Reset password link send on mail"));
 });
 const changeCurrentPassword = asyncHandler(async (req, res) => {
     const { email, oldPassword, newPassword } = req.body;
@@ -197,6 +211,17 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
 const getCurrentUser = asyncHandler(async (req, res) => {
     const user = await findUserById(req.user.id);
     res.status(200).json(new ApiResponse(200, { user }, 'User fetched succesfully'));
+});
+export const deleteUser = asyncHandler(async (req, res) => {
+    const id = req.user.id;
+    if (!id)
+        throw new ApiError(400, "error while deleteing");
+    const user = await deleteuser(id);
+    if (!user)
+        throw new ApiError(400, "error while delteing ");
+    res.status(200).clearCookie("accessToken", options)
+        .clearCookie("refreshToken", options)
+        .json(new ApiResponse(200, { user }, "deleted succesfully"));
 });
 export { changeCurrentPassword, forgotPasswordRequest, getCurrentUser, loginUser, logoutUser, refreshAccessToken, registerUser, resendEmailVerification, resetForgottenPassword, verifyEmail, };
 //# sourceMappingURL=auth.controllers.js.map

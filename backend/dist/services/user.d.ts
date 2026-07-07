@@ -17,4 +17,5 @@ export declare const createUser: (data: {
     fullName?: string;
 }) => Promise<User>;
 export declare const updateUser: (id: string, data: Partial<typeof users.$inferInsert>) => Promise<User>;
+export declare const deleteuser: (id: string) => Promise<User>;
 //# sourceMappingURL=user.d.ts.map

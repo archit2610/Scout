@@ -1,5 +1,4 @@
 import { pgTable, uuid, text, timestamp, boolean, integer, real, jsonb, vector } from 'drizzle-orm/pg-core';
-// ─── Users (replaces your Mongoose userSchema) ───────────────────────────────
 export const users = pgTable('users', {
     id: uuid('id').primaryKey().defaultRandom(),
     username: text('username').notNull().unique(),
@@ -16,7 +15,6 @@ export const users = pgTable('users', {
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
-// ─── Reports (new for Scout) ──────────────────────────────────────────────────
 export const reports = pgTable('reports', {
     id: uuid('id').primaryKey().defaultRandom(),
     userId: uuid('user_id').notNull().references(() => users.id),
@@ -30,7 +28,6 @@ export const reports = pgTable('reports', {
     embedding: vector('embedding', { dimensions: 1536 }),
     createdAt: timestamp('created_at').defaultNow().notNull(),
 });
-// ─── Tool calls (observability — build this from day 1) ──────────────────────
 export const toolCalls = pgTable('tool_calls', {
     id: uuid('id').primaryKey().defaultRandom(),
     reportId: uuid('report_id').notNull().references(() => reports.id),

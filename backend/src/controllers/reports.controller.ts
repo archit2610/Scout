@@ -4,7 +4,7 @@ import { ApiResponse } from "../utils/api-response.js";
 import { ApiError } from "../utils/api-error.js";
 import {
     createReport,
-    getReportsById,
+    getReportById,
     getReportsByUser,
     updateReport,
     deletereport
@@ -32,7 +32,7 @@ export const getAllReports = asyncHandler(async (req, res) => {
 
 export const getReport = asyncHandler(async (req, res) => {
     const { token } = req.params
-    const report = await getReportsById(token as string)
+    const report = await getReportById(token as string)
     if (!report) throw new ApiError(400, "Unable to fetch")
 
     res.status(200).json(new ApiResponse(200, { report }, "question fetched"))
