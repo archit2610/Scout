@@ -16,6 +16,6 @@ router.route('/get-allReports').get(auth, getAllReports)
 router.route('/report/:token').get(auth, getReport)
 router.route('/update-report/:token').post(auth, updateReportById)
 router.route('/delete-Report/:token').get(auth, deleteReport)
-router.route('/report/:id/run')
+router.route('/report/:token/run').get(auth, runReport)
 
 export default router;

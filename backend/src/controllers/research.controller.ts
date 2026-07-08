@@ -1,69 +1,89 @@
-import Anthropic from '@anthropic-ai/sdk'
-import { asyncHandler } from '../utils/async-handler.js'
-import { Request, Response } from 'express'
-import {
-    getReportById,
-    updateReport
-} from '../services/report.js'
-import { ApiError } from '../utils/api-error.js'
-import { ApiResponse } from '../utils/api-response.js'
+import { google } from "@ai-sdk/google";
+import { streamText } from "ai";
 
-const claude = new Anthropic()
+import { asyncHandler } from "../utils/async-handler.js";
+import { Request, Response } from "express";
+import { getReportById, updateReport } from "../services/report.js";
+import { ApiError } from "../utils/api-error.js";
 
 export const runReport = asyncHandler(async (req: Request, res: Response) => {
     const { token } = req.params;
-    const report = await getReportById(token as string)
-    if (!report || report.userId !== req.user!.id) throw new ApiError(404, 'Report not found')
 
-    const reportId = report.id as string
-    await updateReport(reportId, { status: 'running' })
+    const report = await getReportById(token as string);
 
-    res.setHeader('Content-Type', 'text/event-stream')
-    res.setHeader('Cache-Control', 'no-cache')
-    res.setHeader('Connection', 'keep-alive')
-    res.flushHeaders()
+    if (!report || report.userId !== req.user!.id) {
+        throw new ApiError(404, "Report not found");
+    }
+
+    const reportId = report.id as string;
+
+    await updateReport(reportId, {
+        status: "running",
+    });
+
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.flushHeaders();
 
     const send = (data: object) => {
-        res.write(`data: ${JSON.stringify(data)}\n\n`)
-    }
+        res.write(`data: ${JSON.stringify(data)}\n\n`);
+    };
 
     try {
-        send({ type: 'stage', label: 'Generating answer...' })
+        send({
+            type: "stage",
+            label: "Generating answer...",
+        });
 
-        let fullText = ''
+        let fullText = "";
 
-        const stream = claude.messages.stream({
-            model: 'claude-sonnet-4-6',
-            max_tokens: 1024,
-            system: 'You are a research assistant. Write a thorough, well-structured answer in markdown.',
-            messages: [{ role: 'user', content: report.question }],
-        })
+        const result = streamText({
+            model: google("gemini-2.5-flash"),
+            system: "You are a helpful research assistant.Answer thoroughly using markdown",
+            prompt: report.question,
+        });
 
-        for await (const chunk of stream) {
-            if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
-                fullText += chunk.delta.text
-                send({ type: 'token', data: chunk.delta.text })
-            }
+        for await (const chunk of result.textStream) {
+            fullText += chunk;
+
+            send({
+                type: "token",
+                data: chunk,
+            });
         }
 
-        const finalMsg = await stream.finalMessage()
-        const usage = finalMsg.usage
-        const cost = (usage.input_tokens * 0.000003) + (usage.output_tokens * 0.000015)
+        const usage = await result.usage;
 
+        const cost =
+            (usage?.inputTokens ?? 0) * 0.000003 +
+            (usage?.outputTokens ?? 0) * 0.000015;
+
+        console.log(fullText)
         await updateReport(reportId, {
             reportMd: fullText,
-            status: 'done',
-            tokensUsed: usage.input_tokens + usage.output_tokens,
+            status: "done",
+            tokensUsed: (usage?.inputTokens ?? 0) + (usage?.outputTokens ?? 0),
             costUsd: cost,
-        })
+        });
 
-        send({ type: 'done' })
-        res.end()
+        send({
+            type: "done",
+        });
 
+        res.end();
     } catch (err) {
-        await updateReport(reportId, { status: 'error' })
-        send({ type: 'error', message: "Failed to generate report" })
-        res.end()
-        console.error(err)
+        console.error(err);
+
+        await updateReport(reportId, {
+            status: "error",
+        });
+
+        send({
+            type: "error",
+            message: "Failed to generate report",
+        });
+
+        res.end();
     }
-})
+});

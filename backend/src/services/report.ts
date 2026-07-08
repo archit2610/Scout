@@ -17,7 +17,6 @@ export const getReportsByUser = async (userId: string): Promise<Report[]> => {
 
 export const getReportById = async (id: string): Promise<Report | null> => {
     const [report] = await db.select().from(reports).where(eq(reports.id, id))
-
     if (!report)
         throw new ApiError(400, "Query not found")
     return report;
