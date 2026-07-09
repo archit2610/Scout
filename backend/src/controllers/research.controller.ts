@@ -1,10 +1,11 @@
 import { google } from "@ai-sdk/google";
 import { streamText } from "ai";
-
 import { asyncHandler } from "../utils/async-handler.js";
 import { Request, Response } from "express";
 import { getReportById, updateReport } from "../services/report.js";
 import { ApiError } from "../utils/api-error.js";
+import { fetchAndExtract } from "../lib/reader.js"
+import { searchWeb } from "../lib/searcher.js"
 
 export const runReport = asyncHandler(async (req: Request, res: Response) => {
     const { token } = req.params;
@@ -33,14 +34,35 @@ export const runReport = asyncHandler(async (req: Request, res: Response) => {
     try {
         send({
             type: "stage",
-            label: "Generating answer...",
+            label: "Searching web..."
         });
 
-        let fullText = "";
+        const searchResults = await searchWeb(
+            report.question,
+            reportId
+        );
 
-        const result = streamText({
+        let fullText = "";
+        send({
+            type: "stage",
+            label: "Reading sources..."
+        });
+
+        const extracted = await Promise.all(
+            searchResults
+                .slice(0, 3)
+                .map(result =>
+                    fetchAndExtract(
+                        result.url,
+                        report.question,
+                        reportId
+                    )
+                )
+        );
+
+        const result = await streamText({
             model: google("gemini-2.5-flash"),
-            system: "You are a helpful research assistant.Answer thoroughly using markdown",
+            system: "You are a helpful research assistant.Answer thoroughly.",
             prompt: report.question,
         });
 
