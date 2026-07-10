@@ -1,54 +1,46 @@
-import Anthropic from '@anthropic-ai/sdk';
-import { asyncHandler } from '../utils/async-handler.js';
-import { getReportById, updateReport } from '../services/report.js';
-import { ApiError } from '../utils/api-error.js';
-const claude = new Anthropic();
+import { asyncHandler } from "../utils/async-handler.js";
+import { getReportById, updateReport } from "../services/report.js";
+import { ApiError } from "../utils/api-error.js";
+import { runResearch } from "../services/agent.js";
+import { ApiResponse } from "../utils/api-response.js";
 export const runReport = asyncHandler(async (req, res) => {
     const { token } = req.params;
+    if (!token)
+        throw new ApiError(400, "error while fetching the question");
     const report = await getReportById(token);
-    if (!report || report.userId !== req.user.id)
-        throw new ApiError(404, 'Report not found');
+    if (!report || report.userId !== req.user.id) {
+        throw new ApiError(404, "Report not found");
+    }
     const reportId = report.id;
-    await updateReport(reportId, { status: 'running' });
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
+    await updateReport(reportId, {
+        status: "running",
+    });
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
     res.flushHeaders();
-    const send = (data) => {
+    const emit = (data) => {
         res.write(`data: ${JSON.stringify(data)}\n\n`);
     };
     try {
-        send({ type: 'stage', label: 'Generating answer...' });
-        let fullText = '';
-        const stream = claude.messages.stream({
-            model: 'claude-sonnet-4-6',
-            max_tokens: 1024,
-            system: 'You are a research assistant. Write a thorough, well-structured answer in markdown.',
-            messages: [{ role: 'user', content: report.question }],
+        emit({
+            type: "stage",
+            label: "Searching web..."
         });
-        for await (const chunk of stream) {
-            if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
-                fullText += chunk.delta.text;
-                send({ type: 'token', data: chunk.delta.text });
-            }
-        }
-        const finalMsg = await stream.finalMessage();
-        const usage = finalMsg.usage;
-        const cost = (usage.input_tokens * 0.000003) + (usage.output_tokens * 0.000015);
-        await updateReport(reportId, {
-            reportMd: fullText,
-            status: 'done',
-            tokensUsed: usage.input_tokens + usage.output_tokens,
-            costUsd: cost,
+        const result = await runResearch(reportId, report.question, emit);
+        const answer = report.reportMd;
+        console.log(answer);
+        emit({
+            type: "done",
         });
-        send({ type: 'done' });
-        res.end();
+        res.status(200).json(new ApiResponse(200, "Query executed succcessfully"));
     }
     catch (err) {
-        await updateReport(reportId, { status: 'error' });
-        send({ type: 'error', message: "Failed to generate report" });
-        res.end();
         console.error(err);
+        emit({
+            type: "error",
+            message: "Failed to generate report",
+        });
     }
 });
 //# sourceMappingURL=research.controller.js.map

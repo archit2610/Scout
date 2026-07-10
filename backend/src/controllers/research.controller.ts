@@ -1,14 +1,12 @@
-import { google } from "@ai-sdk/google";
-import { streamText } from "ai";
 import { asyncHandler } from "../utils/async-handler.js";
 import { Request, Response } from "express";
 import { getReportById, updateReport } from "../services/report.js";
 import { ApiError } from "../utils/api-error.js";
-import { fetchAndExtract } from "../lib/reader.js"
-import { searchWeb } from "../lib/searcher.js"
+import { runResearch } from "../services/agent.js";
 
 export const runReport = asyncHandler(async (req: Request, res: Response) => {
     const { token } = req.params;
+    if (!token) throw new ApiError(400, "error while fetching the question")
 
     const report = await getReportById(token as string);
 
@@ -18,94 +16,30 @@ export const runReport = asyncHandler(async (req: Request, res: Response) => {
 
     const reportId = report.id as string;
 
-    await updateReport(reportId, {
-        status: "running",
-    });
-
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
     res.flushHeaders();
 
-    const send = (data: object) => {
+    const emit = (data: object) => {
         res.write(`data: ${JSON.stringify(data)}\n\n`);
     };
 
     try {
-        send({
-            type: "stage",
-            label: "Searching web..."
-        });
 
-        const searchResults = await searchWeb(
-            report.question,
-            reportId
-        );
+        await runResearch(reportId, report.question, emit);
 
-        let fullText = "";
-        send({
-            type: "stage",
-            label: "Reading sources..."
-        });
-
-        const extracted = await Promise.all(
-            searchResults
-                .slice(0, 3)
-                .map(result =>
-                    fetchAndExtract(
-                        result.url,
-                        report.question,
-                        reportId
-                    )
-                )
-        );
-
-        const result = await streamText({
-            model: google("gemini-2.5-flash"),
-            system: "You are a helpful research assistant.Answer thoroughly.",
-            prompt: report.question,
-        });
-
-        for await (const chunk of result.textStream) {
-            fullText += chunk;
-
-            send({
-                type: "token",
-                data: chunk,
-            });
-        }
-
-        const usage = await result.usage;
-
-        const cost =
-            (usage?.inputTokens ?? 0) * 0.000003 +
-            (usage?.outputTokens ?? 0) * 0.000015;
-
-        console.log(fullText)
-        await updateReport(reportId, {
-            reportMd: fullText,
-            status: "done",
-            tokensUsed: (usage?.inputTokens ?? 0) + (usage?.outputTokens ?? 0),
-            costUsd: cost,
-        });
-
-        send({
+        emit({
             type: "done",
         });
-
         res.end();
+
     } catch (err) {
         console.error(err);
-
-        await updateReport(reportId, {
-            status: "error",
-        });
-
-        send({
+        emit({
             type: "error",
             message: "Failed to generate report",
         });
-
-        res.end();
+        res.end()
     }
 });
