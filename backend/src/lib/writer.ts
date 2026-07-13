@@ -4,7 +4,13 @@ import { updateReport } from "../services/report.js";
 
 type Emitter = (event: object) => void
 
-export const writerReport = async (reportId: string, question: string, context: string, emit: Emitter): Promise<void> => {
+interface WriterResult {
+    reportMd: string;
+    tokensUsed: number;
+    costUsd: number;
+}
+
+export const writerReport = async (question: string, context: string, emit: Emitter): Promise<WriterResult> => {
     const result = await streamText({
         model: google("gemini-2.5-flash"),
         prompt: `Question:
@@ -36,10 +42,10 @@ export const writerReport = async (reportId: string, question: string, context: 
         (usage?.outputTokens ?? 0) * 0.000015;
 
     console.log(fullText)
-    await updateReport(reportId, {
+
+    return {
         reportMd: fullText,
-        status: "done",
         tokensUsed: (usage?.inputTokens ?? 0) + (usage?.outputTokens ?? 0),
         costUsd: cost,
-    });
+    }
 }

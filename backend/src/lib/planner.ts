@@ -10,7 +10,7 @@ const PlannerSchema = z.object({
     subQuestions: z.array(z.string())
 });
 type ResearchPlan = z.infer<typeof PlannerSchema>;
-export const planResearch = async (question: string, reportId: string): Promise<ResearchPlan> => {
+export const planResearch = async (question: string): Promise<ResearchPlan> => {
     const start = Date.now()
 
 

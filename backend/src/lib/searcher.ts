@@ -10,7 +10,7 @@ interface SearchResult {
     content: string
 }
 
-export const searchWeb = async (query: string, reportId: string): Promise<SearchResult[] | null> => {
+export const searchWeb = async (query: string): Promise<SearchResult[] | null> => {
     const start = Date.now()
     try {
 

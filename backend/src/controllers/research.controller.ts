@@ -27,13 +27,18 @@ export const runReport = asyncHandler(async (req: Request, res: Response) => {
 
     try {
 
-        await runResearch(reportId, report.question, emit);
+        const Report = await runResearch(report.question, emit);
 
+        await updateReport(reportId, {
+            reportMd: Report.reportMd,
+            tokensUsed: Report.tokensUsed,
+            costUsd: Report.costUsd,
+            status: "done",
+        });
         emit({
             type: "done",
         });
         res.end();
-
     } catch (err) {
         console.error(err);
         emit({
@@ -43,3 +48,37 @@ export const runReport = asyncHandler(async (req: Request, res: Response) => {
         res.end()
     }
 });
+
+export const anonymousrun = asyncHandler(async (req: Request, res: Response) => {
+
+    const { question } = req.body;
+
+    if (!question || typeof question !== "string") {
+        throw new ApiError(400, "Question is required");
+    }
+
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.flushHeaders();
+
+    const emit = (data: object) => {
+        res.write(`data: ${JSON.stringify(data)}\n\n`);
+    };
+
+    try {
+
+        const Report = await runResearch(question, emit);
+        emit({
+            type: "done",
+        });
+        res.end();
+    } catch (err) {
+        console.error(err);
+        emit({
+            type: "error",
+            message: "Failed to generate report",
+        });
+        res.end()
+    }
+})

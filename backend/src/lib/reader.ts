@@ -9,7 +9,7 @@ interface SearchResult {
     content: string;
 }
 
-export const fetchAndExtract = async (results: SearchResult[], question: string, reportId: string): Promise<string> => {
+export const fetchAndExtract = async (results: SearchResult[], question: string): Promise<string> => {
 
     const pages = await Promise.all(
         results.map(async (result) => {
