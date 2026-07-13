@@ -44,8 +44,8 @@ export const planResearch = async (question: string, reportId: string): Promise<
         output: "object"
     });
 
-    const subQuestions = response.object.subQuestions;
-    const usage = await response.usage
+    // const subQuestions = response.object.subQuestions;
+    // const usage = await response.usage
 
     // await db.insert(toolCalls).values({
     //     reportId, stage: 'planner',

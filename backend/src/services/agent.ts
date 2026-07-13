@@ -1,6 +1,3 @@
-import { google } from "@ai-sdk/google";
-import { streamText } from "ai";
-import { updateReport } from "../services/report.js";
 import { ApiError } from "../utils/api-error.js";
 import { fetchAndExtract } from "../lib/reader.js"
 import { searchWeb } from "../lib/searcher.js"
@@ -8,81 +5,58 @@ import { planResearch } from "../lib/planner.js"
 import { reports } from "../db/schema.js";
 import { db } from "../db/index.js";
 import { eq } from "drizzle-orm"
+import { writerReport } from "../lib/writer.js";
+import { withTimeout } from "../utils/timeout.js";
 
 type Emitter = (event: object) => void
 
 
 export const runResearch = async (reportId: string, question: string, emit: Emitter): Promise<void> => {
+    let context = '';
+    emit({ type: 'stage', label: 'Planning research...' })
     try {
-        emit({ type: 'stage', label: 'Planning research...' })
-        const plan = await planResearch(question, reportId)
-        const { subQuestions } = plan;
+        const plan = await withTimeout(planResearch(question, reportId), 20000)
 
-        await db.update(reports).set({ subQuestions, status: "running" }).where(eq(reports.id, reportId))
-        emit({ type: 'plan', subQuestions })
+        if (plan.needsWebSearch) {
 
-        const searches = await Promise.all(
-            subQuestions.map(q => searchWeb(q, reportId))
-        );
+            if (plan.subQuestions.length > 5) plan.subQuestions = plan.subQuestions.slice(0, 5);
+            const { subQuestions } = plan;
 
-        const results = searches
-            .flat()
-            .filter((r): r is NonNullable<typeof r> => r !== null);
+            await db.update(reports).set({ subQuestions, status: "running" }).where(eq(reports.id, reportId))
+            emit({ type: 'plan', subQuestions })
 
-        const uniqueResults = results
-            .filter(
-                (result, index, self) =>
-                    index === self.findIndex(r => r.url === result.url)
-            )
-            .slice(0, 8);
+            const searches = await withTimeout(
+                Promise.all(subQuestions.map(q => searchWeb(q, reportId))),
+                20_000,
+                []
+            );
 
-        emit({ type: "stage", label: "Reading sources..." });
+            const results = searches
+                .flat()
+                .filter((r): r is NonNullable<typeof r> => r !== null);
 
-        const context = await fetchAndExtract(
-            uniqueResults,
-            question,
-            reportId
-        );
+            const uniqueResults = results
+                .filter(
+                    (result, index, self) =>
+                        index === self.findIndex(r => r.url === result.url)
+                )
+                .slice(0, 8);
+
+            emit({ type: "stage", label: "Reading sources..." });
+
+            context = await withTimeout(fetchAndExtract(
+                uniqueResults,
+                question,
+                reportId
+            ), 20000, "");
+            context = context.slice(0, 20000);
+
+        }
 
 
         emit({ type: "stage", label: "Writing Report" })
 
-        const result = await streamText({
-            model: google("gemini-2.5-flash"),
-            prompt: ` 
-                    Question:
-                    ${question}
-
-                    Context:
-                    ${context}
-
-                    Instructions:
-                    - Answer ONLY using the provided context.
-                    - If the context is insufficient, explicitly say so.
-                    - Cite the source URL after each important claim.
-                    - Return markdown.`
-        });
-
-        let fullText = ''
-        for await (const chunk of result.textStream) {
-            fullText += chunk;
-
-            emit({ type: 'token', data: chunk })
-        }
-
-        const usage = await result.usage;
-
-        const cost =
-            (usage?.inputTokens ?? 0) * 0.000003 +
-            (usage?.outputTokens ?? 0) * 0.000015;
-
-        console.log(fullText)
-        await updateReport(reportId, {
-            reportMd: fullText,
-            status: "done",
-            tokensUsed: (usage?.inputTokens ?? 0) + (usage?.outputTokens ?? 0),
-            costUsd: cost,
-        });
+        await withTimeout(writerReport(reportId, question, context, emit), 30000)
 
     } catch (err) {
         console.error(err)
