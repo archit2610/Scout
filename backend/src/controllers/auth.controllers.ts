@@ -86,9 +86,9 @@ const registerUser = asyncHandler(async (req, res) => {
 });
 
 const loginUser = asyncHandler(async (req, res) => {
-  const { email, username, password, role } = req.body;
+  const { email, password, } = req.body;
 
-  if (!email || !username || !password) {
+  if (!email || !password) {
     throw new ApiError(400, "All fiels are required")
   };
 
