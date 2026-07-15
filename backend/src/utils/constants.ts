@@ -16,6 +16,7 @@ export const TaskStatusEnum = {
 export const options = {
     httpOnly: true,
     secure: true,
+    sameSite: "none" as const,
 };
 
 export const AvailableTaskStatuses = Object.values(TaskStatusEnum);
