@@ -27,7 +27,11 @@ export const fetchAndExtract = async (results: SearchResult[], question: string)
                 };
             }
             catch (err) {
-                console.log(err)
+                if (err instanceof Error && err.name === 'TimeoutError') {
+                    console.log(`Fetch timed out for: ${result.url}`);
+                } else {
+                    console.log(err);
+                }
                 return null;
             }
         })

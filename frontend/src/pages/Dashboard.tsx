@@ -223,19 +223,19 @@ export default function Dashboard() {
         <div className="flex items-center gap-2">
           <span className="text-white/50 text-xs">© 2026 Scout Inc. All rights reserved.</span>
         </div>
-        <div className="flex items-center gap-6">
+        {/* <div className="flex items-center gap-6">
           <a href="#" className="text-white/40 hover:text-white transition-colors text-xs">Features</a>
           <a href="#" className="text-white/40 hover:text-white transition-colors text-xs">Pricing</a>
           <a href="#" className="text-white/40 hover:text-white transition-colors text-xs">Privacy</a>
-        </div>
+        </div> */}
         <div className="flex items-center gap-4">
-          <a href="#" aria-label="Twitter" className="liquid-glass rounded-full p-2 text-white/60 hover:text-white hover:bg-white/5 transition-all">
+          <a href="https://x.com/ArchitSa" aria-label="Twitter" className="liquid-glass rounded-full p-2 text-white/60 hover:text-white hover:bg-white/5 transition-all">
             <span className="text-xs font-semibold px-1">Twitter</span>
           </a>
-          <a href="#" aria-label="GitHub" className="liquid-glass rounded-full p-2 text-white/60 hover:text-white hover:bg-white/5 transition-all">
+          <a href="https://github.com/archit2610/Scout" aria-label="GitHub" className="liquid-glass rounded-full p-2 text-white/60 hover:text-white hover:bg-white/5 transition-all">
             <span className="text-xs font-semibold px-1">GitHub</span>
           </a>
-          <a href="#" aria-label="LinkedIn" className="liquid-glass rounded-full p-2 text-white/60 hover:text-white hover:bg-white/5 transition-all">
+          <a href="https://www.linkedin.com/in/archit-sarawagi-6b73872bb/" aria-label="LinkedIn" className="liquid-glass rounded-full p-2 text-white/60 hover:text-white hover:bg-white/5 transition-all">
             <span className="text-xs font-semibold px-1">LinkedIn</span>
           </a>
         </div>

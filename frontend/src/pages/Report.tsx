@@ -100,16 +100,59 @@ export default function ReportPage() {
     }
   };
 
+  const handleRetry = async () => {
+    if (!token) return;
+
+    if (token === 'anonymous') {
+      setPageState('loading');
+      setErrorMessage('');
+      const searchParams = new URLSearchParams(window.location.search);
+      const question = searchParams.get('question') || '';
+
+      setPageState('running');
+      setSteps([{ label: 'Initiating connection...', status: 'in-progress' }]);
+      setSubQuestions([]);
+      setStreamingContent('');
+      userScrolledUpRef.current = false;
+
+      startAnonymousRun(question);
+      return;
+    }
+
+    setPageState('loading');
+    setErrorMessage('');
+    try {
+      // 1. Fetch current status of the report
+      const res = await api.get<Report>(`/api/v1/report/${token}`);
+      if (res.success && res.data) {
+        setReport(res.data);
+
+        // 2. If it is already completed, display the answer immediately
+        if (res.data.status === 'done' && res.data.reportMd) {
+          setStreamingContent(res.data.reportMd);
+          setPageState('done');
+          return;
+        }
+      }
+
+      // 3. If it's not completed, run the pipeline normally
+      await handleRun();
+    } catch (err) {
+      // Fallback to normal execution if the fetch fails
+      await handleRun();
+    }
+  };
+
   // Start Agent Run
   const handleRun = async () => {
     if (!token) return;
 
-    if (token === 'anonymous') {
-      const searchParams = new URLSearchParams(window.location.search);
-      const question = searchParams.get('question') || '';
-      startAnonymousRun(question);
-      return;
-    }
+    // if (token === 'anonymous') {
+    //   const searchParams = new URLSearchParams(window.location.search);
+    //   const question = searchParams.get('question') || '';
+    //   startAnonymousRun(question);
+    //   return;
+    // }
 
     setPageState('running');
     setSteps([{ label: 'Initiating connection...', status: 'in-progress' }]);
@@ -117,18 +160,19 @@ export default function ReportPage() {
     setStreamingContent('');
     userScrolledUpRef.current = false;
 
-    try {
-      const res = await api.get(`/api/v1/auth/report/${token}/run`);
-      if (res.success) {
-        startSSE();
-      } else {
-        setErrorMessage(res.message || 'Failed to initiate agent execution.');
-        setPageState('error');
-      }
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Error occurred starting execution.');
-      setPageState('error');
-    }
+    // try {
+    //   const res = await api.get(`/api/v1/auth/report/${token}/run`);
+    //   if (res.success) {
+    //     startSSE();
+    //   } else {
+    //     setErrorMessage(res.message || 'Failed to initiate agent execution.');
+    //     setPageState('error');
+    //   }
+    // } catch (err: any) {
+    //   setErrorMessage(err.message || 'Error occurred starting execution.');
+    //   setPageState('error');
+    // }
+    startSSE();
   };
 
   // Run anonymous research via POST request stream
@@ -239,7 +283,7 @@ export default function ReportPage() {
     // Reset user scroll state
     userScrolledUpRef.current = false;
 
-    const url = `${API_URL}/api/v1/auth/research/${token}/run`;
+    const url = `${API_URL}/api/v1/auth/report/${token}/run`;
     const es = new EventSource(url, { withCredentials: true });
     eventSourceRef.current = es;
 
@@ -505,7 +549,7 @@ export default function ReportPage() {
                 </p>
               </div>
               <button
-                onClick={handleRun}
+                onClick={handleRetry}
                 className="scout-btn-primary w-full flex items-center justify-center gap-2"
               >
                 <RefreshCw size={14} />
