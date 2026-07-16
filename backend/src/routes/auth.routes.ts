@@ -32,7 +32,7 @@ router.route("/resend-emailverification").post(resendEmailVerification);
 router.route("/forgot-password").post(userForgotPasswordValidator(), validate, forgotPasswordRequest);
 router.route("/forgot-password/:token").post(userResetForgottenPasswordValidator(), validate, resetForgottenPassword);
 router.route("/change-currentpassword").post(userChangeCurrentPasswordValidator(), validate, changeCurrentPassword);
-router.route("/refresh-accesstoken").get(auth, refreshAccessToken);
+router.route("/refresh-accesstoken").get(refreshAccessToken);
 router.route("/profile").get(auth, getCurrentUser);
 router.route("/delete-user").get(auth, deleteUser);
 

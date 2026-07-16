@@ -12,6 +12,7 @@ export declare const TaskStatusEnum: {
 export declare const options: {
     httpOnly: boolean;
     secure: boolean;
+    sameSite: "none";
 };
 export declare const AvailableTaskStatuses: string[];
 //# sourceMappingURL=constants.d.ts.map

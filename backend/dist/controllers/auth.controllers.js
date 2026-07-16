@@ -46,8 +46,8 @@ const registerUser = asyncHandler(async (req, res) => {
     console.log(newuser.username, 'is registered successfully');
 });
 const loginUser = asyncHandler(async (req, res) => {
-    const { email, username, password, role } = req.body;
-    if (!email || !username || !password) {
+    const { email, password, } = req.body;
+    if (!email || !password) {
         throw new ApiError(400, "All fiels are required");
     }
     ;
@@ -58,9 +58,9 @@ const loginUser = asyncHandler(async (req, res) => {
     const passwordValid = await isPasswordCorrect(password, user.password);
     if (!passwordValid)
         throw new ApiError(400, 'Incorrect password');
-    if (!user.isEmailVerified) {
-        throw new ApiError(400, "please verify user first");
-    }
+    // if (!user.isEmailVerified) {
+    //   throw new ApiError(400, "please verify user first");
+    // }
     const accessToken = await generateAccessToken(user);
     const refreshToken = await generateRefreshToken(user);
     await updateUser(user.id, { refreshToken });

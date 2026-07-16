@@ -1,6 +1,8 @@
-export interface ExtractedFact {
+interface SearchResult {
     url: string;
-    facts: string;
+    title: string;
+    content: string;
 }
-export declare const fetchAndExtract: (url: string, subQuestion: string, reportId: string) => Promise<ExtractedFact | null>;
+export declare const fetchAndExtract: (results: SearchResult[], question: string) => Promise<string>;
+export {};
 //# sourceMappingURL=reader.d.ts.map

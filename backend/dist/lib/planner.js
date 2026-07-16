@@ -1,6 +1,4 @@
 import { google } from '@ai-sdk/google';
-import { db } from '../db/index.js';
-import { toolCalls } from '../db/schema.js';
 import { generateObject } from 'ai';
 import { z } from "zod";
 const PlannerSchema = z.object({
@@ -8,7 +6,7 @@ const PlannerSchema = z.object({
     reason: z.string(),
     subQuestions: z.array(z.string())
 });
-export const planResearch = async (question, reportId) => {
+export const planResearch = async (question) => {
     const start = Date.now();
     const response = await generateObject({
         model: google("gemini-2.5-flash"),
@@ -39,17 +37,17 @@ export const planResearch = async (question, reportId) => {
                 `,
         output: "object"
     });
-    const subQuestions = response.object.subQuestions;
-    const usage = await response.usage;
-    await db.insert(toolCalls).values({
-        reportId, stage: 'planner',
-        toolName: 'set_research_plan',
-        inputJson: { question },
-        outputJson: { subQuestions },
-        latencyMs: Date.now() - start,
-        inputTokens: usage.inputTokens ?? 0,
-        outputTokens: usage.outputTokens ?? 0,
-    });
+    // const subQuestions = response.object.subQuestions;
+    // const usage = await response.usage
+    // await db.insert(toolCalls).values({
+    //     reportId, stage: 'planner',
+    //     toolName: 'set_research_plan',
+    //     inputJson: { question },
+    //     outputJson: { subQuestions },
+    //     latencyMs: Date.now() - start,
+    //     inputTokens: usage.inputTokens ?? 0,
+    //     outputTokens: usage.outputTokens ?? 0,
+    // })
     return response.object;
 };
 //# sourceMappingURL=planner.js.map

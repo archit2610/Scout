@@ -12,6 +12,7 @@ export const TaskStatusEnum = {
 export const options = {
     httpOnly: true,
     secure: true,
+    sameSite: "none",
 };
 export const AvailableTaskStatuses = Object.values(TaskStatusEnum);
 //# sourceMappingURL=constants.js.map
