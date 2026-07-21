@@ -1,21 +1,14 @@
 import { db } from '../db/index.js'
-import { conversations, messages, type Message } from '../db/schema.js'
-import { eq, desc, asc, sql } from 'drizzle-orm'
-import { embedText } from './embedding.service.js'
-import { Conversation } from '../db/schema.js'
+import { conversations, reports } from '../db/schema.js'
+import { eq, desc } from 'drizzle-orm'
 
 export const createConversation = async (
     userId: string,
-    firstMessage: string
-): Promise<Conversation> => {
-    // Auto-generate title from first message (truncated)
-    const title = firstMessage.length > 60
-        ? firstMessage.slice(0, 60) + '...'
-        : firstMessage
-
+    title: string
+): Promise<typeof conversations.$inferSelect> => {
     const [convo] = await db.insert(conversations).values({
         userId,
-        title,
+        title: title.length > 80 ? title.slice(0, 80) + '...' : title,
     }).returning()
 
     if (!convo) {
@@ -32,51 +25,20 @@ export const getConversationsByUser = async (userId: string) => {
 }
 
 export const getConversationById = async (id: string) => {
-    const [convo] = await db.select().from(conversations).where(eq(conversations.id, id))
+    const [convo] = await db.select().from(conversations)
+        .where(eq(conversations.id, id))
     return convo ?? null
 }
 
-
-export const getRecentMessages = async (
-    conversationId: string,
-    limit = 10
-): Promise<Message[]> => {
-    return db.select().from(messages)
-        .where(eq(messages.conversationId, conversationId))
-        .orderBy(desc(messages.createdAt))
-        .limit(limit)
-        .then(rows => rows.reverse())
+export const getConversationReports = async (conversationId: string) => {
+    return db.select().from(reports)
+        .where(eq(reports.conversationId, conversationId))
+        .orderBy(reports.createdAt)
 }
 
-export const addMessage = async (data: {
-    conversationId: string
-    role: 'user' | 'assistant'
-    content: string
-    reportId?: string
-    tokensUsed?: number
-    costUsd?: number
-    usedMemory?: boolean
-    retrievedChunkIds?: string[]
-}): Promise<Message> => {
-    const [msg] = await db.insert(messages).values(data).returning()
 
-    // Update conversation's updatedAt and increment messageCount
+export const touchConversation = async (conversationId: string) => {
     await db.update(conversations)
-        .set({ updatedAt: new Date(), messageCount: sql`message_count + 1` })
-        .where(eq(conversations.id, data.conversationId))
-
-    if (!msg) throw new Error("failed to create a message")
-    return msg
-}
-
-// Periodically update conversation summary for better retrieval
-// (call this every 10 messages or so)
-export const updateConversationSummary = async (
-    conversationId: string,
-    summary: string
-): Promise<void> => {
-    const embedding = await embedText(summary)
-    await db.update(conversations)
-        .set({ summary, summaryEmbedding: embedding })
+        .set({ updatedAt: new Date() })
         .where(eq(conversations.id, conversationId))
 }
