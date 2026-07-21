@@ -18,7 +18,7 @@ import {
   generateTemporaryToken,
   hashPassword,
   deleteuser
-} from '../services/user.js'
+} from '../services/user.service.js'
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import { db } from "../db/index.js";

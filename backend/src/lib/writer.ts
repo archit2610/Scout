@@ -1,6 +1,5 @@
 import { streamText } from "ai";
 import { google } from "@ai-sdk/google";
-import { updateReport } from "../services/report.js";
 
 type Emitter = (event: object) => void
 

@@ -1,8 +1,8 @@
 import { asyncHandler } from "../utils/async-handler.js";
 import { Request, Response } from "express";
-import { getReportById, updateReport } from "../services/report.js";
+import { getReportById, updateReport } from "../services/report.service.js";
 import { ApiError } from "../utils/api-error.js";
-import { runResearch } from "../services/agent.js";
+import { runResearch } from "../services/agent.service.js";
 
 export const runReport = asyncHandler(async (req: Request, res: Response) => {
     const { token } = req.params;

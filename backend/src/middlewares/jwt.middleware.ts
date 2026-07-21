@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { asyncHandler } from "../utils/async-handler.js";
 import { ApiError } from "../utils/api-error.js";
 import jwt from "jsonwebtoken";
-import { findUserById } from "../services/user.js";
+import { findUserById } from "../services/user.service.js";
 import { User } from "../db/schema.js"
 
 declare global {

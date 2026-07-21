@@ -8,7 +8,7 @@ import {
     getReportsByUser,
     updateReport,
     deletereport
-} from "../services/report.js";
+} from "../services/report.service.js";
 
 export const createResearch = asyncHandler(async (req, res) => {
     const { question } = req.body
