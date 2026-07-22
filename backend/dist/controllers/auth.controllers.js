@@ -2,13 +2,14 @@ import { asyncHandler } from "../utils/async-handler.js";
 import { ApiError } from "../utils/api-error.js";
 import { ApiResponse } from "../utils/api-response.js";
 import { emailVerificationMailgenContent, sendEmail, forgotPasswordMailgenContent } from "../utils/mail.js";
-import { findUserByEmail, findUserById, createUser, updateUser, isPasswordCorrect, generateAccessToken, generateRefreshToken, generateTemporaryToken, hashPassword, deleteuser } from '../services/user.js';
+import { findUserByEmail, findUserById, createUser, updateUser, isPasswordCorrect, generateAccessToken, generateRefreshToken, generateTemporaryToken, hashPassword, deleteuser } from '../services/user.service.js';
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import { db } from "../db/index.js";
 import { users } from "../db/schema.js";
 import { eq } from "drizzle-orm";
 import { options } from "../utils/constants.js";
+import { migrateGuestConversationsToUser, GUEST_COOKIE_NAME } from "../services/conversation.service.js";
 const cookieOptions = {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
@@ -58,9 +59,11 @@ const loginUser = asyncHandler(async (req, res) => {
     const passwordValid = await isPasswordCorrect(password, user.password);
     if (!passwordValid)
         throw new ApiError(400, 'Incorrect password');
-    // if (!user.isEmailVerified) {
-    //   throw new ApiError(400, "please verify user first");
-    // }
+    const tempId = req.cookies?.[GUEST_COOKIE_NAME];
+    if (tempId) {
+        await migrateGuestConversationsToUser(tempId, user.id);
+        res.clearCookie(GUEST_COOKIE_NAME);
+    }
     const accessToken = await generateAccessToken(user);
     const refreshToken = await generateRefreshToken(user);
     await updateUser(user.id, { refreshToken });

@@ -1,6 +1,4 @@
 import { google } from '@ai-sdk/google'
-import { db } from '../db/index.js'
-import { toolCalls } from '../db/schema.js'
 import { generateObject } from 'ai'
 import { z } from "zod";
 
@@ -9,53 +7,34 @@ const PlannerSchema = z.object({
     reason: z.string(),
     subQuestions: z.array(z.string())
 });
-type ResearchPlan = z.infer<typeof PlannerSchema>;
-export const planResearch = async (question: string): Promise<ResearchPlan> => {
-    const start = Date.now()
 
+type ResearchPlan = z.infer<typeof PlannerSchema>;
+
+export const planResearch = async (question: string, retrievedMemoryContext = ''): Promise<ResearchPlan> => {
 
     const response = await generateObject({
         model: google("gemini-2.5-flash"),
         schema: PlannerSchema,
         prompt: `
-                You are a research planner.
+                You are Scout's intelligent research planner.
 
-               Question:
-                ${question}
+                Current User Question:
+                "${question}"
 
-                If the question depends on:
-                - recent events,
-                - current news,
-                - recent software versions,
-                - current APIs,
-                - live prices,
-                - or factual information that may have changed,
+                ${retrievedMemoryContext ? `Retrieved Context from Conversation Memory:\n${retrievedMemoryContext}\n` : 'No previous memory available.'}
 
-                set needsWebSearch = true.
-
-                Otherwise set needsWebSearch = false.
-
-                If web search is needed,
-                break the question into 3–5 searchable sub-questions.
-
-                If not,
-                return the original question as the only sub-question.
+                Instructions:
+                1. Evaluate if the retrieved conversation memory is SUFFICIENT to fully, accurately, and completely answer the user's question
+                 (e.g., summarizing previous reports, follow-up explanations, or questions covered in context).
+                2. If memory context IS SUFFICIENT:
+                - Set needsWebSearch = false.                                                
+                - subQuestions = [original question].
+                3. If fresh external web data, live news, real-time facts, current prices, or code libraries not in memory are required:
+                - Set needsWebSearch = true.
+                - Break the query into 3 to 5 targeted web search sub-questions.
                 `,
         output: "object"
     });
-
-    // const subQuestions = response.object.subQuestions;
-    // const usage = await response.usage
-
-    // await db.insert(toolCalls).values({
-    //     reportId, stage: 'planner',
-    //     toolName: 'set_research_plan',
-    //     inputJson: { question },
-    //     outputJson: { subQuestions },
-    //     latencyMs: Date.now() - start,
-    //     inputTokens: usage.inputTokens ?? 0,
-    //     outputTokens: usage.outputTokens ?? 0,
-    // })
 
     return response.object;
 }

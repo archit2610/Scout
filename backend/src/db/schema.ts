@@ -22,15 +22,20 @@ export const users = pgTable('users', {
 
 export const conversations = pgTable('conversations', {
     id: uuid('id').primaryKey().defaultRandom(),
-    userId: uuid('user_id').notNull().references(() => users.id),
-    title: text('title').notNull(),   // set from first question
+    userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
+    anonymousVisitorId: text('anonymous_visitor_id'),
+    title: text('title').notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
-})
+}, (table) => [
+    index('conv_user_idx').on(table.userId),
+    index('conv_guest_idx').on(table.anonymousVisitorId),
+]);
 
 export const reports = pgTable('reports', {
     id: uuid('id').primaryKey().defaultRandom(),
-    userId: uuid('user_id').notNull().references(() => users.id),
+    userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+    conversationId: uuid('conversation_id').references(() => conversations.id),
     question: text('question').notNull(),
     subQuestions: jsonb('sub_questions').$type<string[]>(),
     reportMd: text('report_md'),
@@ -38,10 +43,12 @@ export const reports = pgTable('reports', {
     status: text('status').notNull().default('pending'), // pending | running | done | error
     tokensUsed: integer('tokens_used'),
     costUsd: real('cost_usd'),
-    embedding: vector('embedding', { dimensions: 1536 }),
+    usedMemory: boolean('used_memory').default(false),
+    embedding: vector('embedding', { dimensions: 768 }),
     createdAt: timestamp('created_at').defaultNow().notNull(),
-    conversationId: uuid('conversation_id').references(() => conversations.id),
-})
+}, (table) => [
+    index('reports_conversation_idx').on(table.conversationId),
+]);
 
 
 export const toolCalls = pgTable('tool_calls', {
@@ -61,13 +68,16 @@ export const toolCalls = pgTable('tool_calls', {
 
 export const memoryChunks = pgTable('memory_chunks', {
     id: uuid('id').primaryKey().defaultRandom(),
-    reportId: uuid('report_id').notNull().references(() => reports.id),
+    conversationId: uuid('conversation_id').notNull().references(() => conversations.id, { onDelete: 'cascade' }),
+    reportId: uuid('report_id').notNull().references(() => reports.id, { onDelete: 'cascade' }),
     content: text('content').notNull(),
     tokenCount: integer('token_count').notNull(),
     chunkIndex: integer('chunk_index').notNull(),
-    embedding: vector('embedding', { dimensions: 1536 }),
+    embedding: vector('embedding', { dimensions: 768 }),
     createdAt: timestamp('created_at').defaultNow().notNull(),
-})
+}, (table) => [
+    index('memory_chunks_conversation_idx').on(table.conversationId),
+]);
 
 export type NewUser = typeof users.$inferInsert
 export type User = typeof users.$inferSelect

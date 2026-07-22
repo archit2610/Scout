@@ -1,7 +1,7 @@
 import { asyncHandler } from "../utils/async-handler.js";
 import { ApiError } from "../utils/api-error.js";
 import jwt from "jsonwebtoken";
-import { findUserById } from "../services/user.js";
+import { findUserById } from "../services/user.service.js";
 // export const auth = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
 //   const token = req.cookies?.accessToken ?? req.headers.authorization?.split(' ')[1]
 //   if (!token) throw new ApiError(401, 'Login please')

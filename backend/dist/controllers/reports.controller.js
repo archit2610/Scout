@@ -1,15 +1,32 @@
 import { asyncHandler } from "../utils/async-handler.js";
 import { ApiResponse } from "../utils/api-response.js";
 import { ApiError } from "../utils/api-error.js";
-import { createReport, getReportById, getReportsByUser, updateReport, deletereport } from "../services/report.js";
+import { createReport, getReportById, getReportsByUser, updateReport, deletereport } from "../services/report.service.js";
+import { createConversation } from "../services/conversation.service.js";
 export const createResearch = asyncHandler(async (req, res) => {
-    const { question } = req.body;
+    const { question, conversationId: incomingConvoId } = req.body;
     if (!question)
-        throw new ApiError(400, "please enter question");
-    const report = await createReport(req.user.id, question.trim());
-    if (!report)
-        throw new ApiError(400, "please enter question");
-    res.status(200).json(new ApiResponse(200, { report }, "question stored"));
+        throw new ApiError(400, "Please enter a question");
+    let conversationId = incomingConvoId;
+    if (!conversationId) {
+        const conversationPayload = {};
+        if (req.user?.id) {
+            conversationPayload.userId = req.user.id;
+        }
+        if (req.guestTempId) {
+            conversationPayload.guestTempId = req.guestTempId;
+        }
+        const convo = await createConversation(conversationPayload, question.trim());
+        if (!convo)
+            throw new ApiError(400, "failed at creating a conversation");
+        conversationId = convo.id;
+    }
+    const report = await createReport({
+        userId: req.user?.id,
+        question: question.trim(),
+        conversationId,
+    });
+    res.status(200).json(new ApiResponse(200, { report, conversationId }, "Question registered"));
 });
 export const getAllReports = asyncHandler(async (req, res) => {
     const reports = await getReportsByUser(req.user.id);

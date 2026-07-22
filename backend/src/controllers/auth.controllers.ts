@@ -25,6 +25,8 @@ import { db } from "../db/index.js";
 import { users, User } from "../db/schema.js";
 import { eq, gt } from "drizzle-orm";
 import { options } from "../utils/constants.js"
+import { migrateGuestConversationsToUser, GUEST_COOKIE_NAME } from "../services/conversation.service.js";
+
 
 declare global {
   namespace Express {
@@ -101,9 +103,11 @@ const loginUser = asyncHandler(async (req, res) => {
   const passwordValid = await isPasswordCorrect(password, user.password)
   if (!passwordValid) throw new ApiError(400, 'Incorrect password')
 
-  // if (!user.isEmailVerified) {
-  //   throw new ApiError(400, "please verify user first");
-  // }
+  const tempId = req.cookies?.[GUEST_COOKIE_NAME];
+  if (tempId) {
+    await migrateGuestConversationsToUser(tempId, user.id);
+    res.clearCookie(GUEST_COOKIE_NAME);
+  }
 
   const accessToken = await generateAccessToken(user);
   const refreshToken = await generateRefreshToken(user);
