@@ -45,7 +45,6 @@ export const getConversationReportsThread = asyncHandler(async (req: Request, re
 export const deleteConversationById = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     if (!id) throw new ApiError(400, "Conversation ID is required");
-
     const deleted = await deleteConversation(id as string);
     res.status(200).json(new ApiResponse(200, { conversation: deleted }, "Conversation deleted successfully"));
 });

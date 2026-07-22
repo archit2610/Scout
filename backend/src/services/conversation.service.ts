@@ -8,18 +8,31 @@ export const createConversation = async (
     owner: { userId?: string; guestTempId?: string },
     firstQuestion: string
 ) => {
+
     const title = firstQuestion.length > 80 ? firstQuestion.slice(0, 77) + '...' : firstQuestion;
 
-    const [convo] = await db.insert(conversations).values({
-        userId: owner.userId || null,
-        anonymousVisitorId: owner.userId ? null : owner.guestTempId,
-        title,
-    }).returning();
+    try {
 
-    return convo;
+        const [convo] = await db.insert(conversations).values({
+            userId: owner.userId || null,
+            anonymousVisitorId: owner.userId ? null : owner.guestTempId,
+            title,
+        }).returning();
+
+        return convo;
+    } catch (error) {
+        console.error("CREATE CONVERSATION ERROR:", error);
+
+        if (error instanceof Error && "cause" in error) {
+            console.error("CAUSE:", error.cause);
+        }
+
+        throw error;
+    }
 };
 
 export const getConversationsByOwner = async (owner: { userId?: string; guestTempId?: string }) => {
+
     if (owner.userId) {
         return db.select()
             .from(conversations)
@@ -50,8 +63,19 @@ export const getConversationReports = async (conversationId: string) => {
 };
 
 export const deleteConversation = async (conversationId: string) => {
-    const [deleted] = await db.delete(conversations).where(eq(conversations.id, conversationId)).returning();
-    return deleted;
+    try {
+        const [deleted] = await db.delete(conversations).where(eq(conversations.id, conversationId)).returning();
+        return deleted;
+    }
+    catch (error) {
+        console.error("delete CONVERSATION ERROR:", error);
+
+        if (error instanceof Error && "cause" in error) {
+            console.error("CAUSE:", error.cause);
+        }
+
+        throw error;
+    }
 };
 
 export const migrateGuestConversationsToUser = async (guestTempId: string, userId: string) => {

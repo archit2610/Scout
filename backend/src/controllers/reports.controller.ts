@@ -12,10 +12,10 @@ import {
 import { createConversation } from "../services/conversation.service.js";
 
 export const createResearch = asyncHandler(async (req: Request, res: Response) => {
-    const { question, conversationId: incomingConvoId } = req.body;              
+    const { question, conversationId: incomingConvoId } = req.body;
     if (!question) throw new ApiError(400, "Please enter a question");
     let conversationId = incomingConvoId;
-    if (!conversationId) {                                                       
+    if (!conversationId) {
         const conversationPayload: { userId?: string; guestTempId?: string } = {};
 
         if (req.user?.id) {
@@ -32,9 +32,9 @@ export const createResearch = asyncHandler(async (req: Request, res: Response) =
         );
         if (!convo) throw new ApiError(400, "failed at creating a conversation");
         conversationId = convo.id;
-    }  
-    const report = await createReport({                                          
-        userId: req.user?.id,
+    }
+    const report = await createReport({
+        ...(req.user?.id ? { userId: req.user.id } : {}),
         question: question.trim(),
         conversationId,
     });

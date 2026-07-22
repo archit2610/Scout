@@ -35,7 +35,11 @@ export const conversations = pgTable('conversations', {
 export const reports = pgTable('reports', {
     id: uuid('id').primaryKey().defaultRandom(),
     userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
-    conversationId: uuid('conversation_id').references(() => conversations.id),
+    conversationId: uuid("conversation_id")
+        .references(
+            () => conversations.id,
+            { onDelete: "cascade" }
+        ),
     question: text('question').notNull(),
     subQuestions: jsonb('sub_questions').$type<string[]>(),
     reportMd: text('report_md'),
