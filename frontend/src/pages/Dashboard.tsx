@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import Navbar from '../components/Navbar';
+import ConversationSidebar from '../components/ConversationSidebar';
 import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -10,6 +11,7 @@ export default function Dashboard() {
   const auth = useAuth();
   const [question, setQuestion] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Video fade refs
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -103,13 +105,16 @@ export default function Dashboard() {
 
     setIsSubmitting(true);
     try {
-      const res = await api.post<{ report?: { id: string; token?: string }; reportId?: string; token?: string }>('/api/v1/auth/create', {
+      const res = await api.post<{ report?: { id: string; token?: string }; conversationId?: string; reportId?: string; token?: string }>('/api/v1/auth/create', {
         question: question.trim(),
       });
 
       if (res.success && res.data) {
+        const convoId = res.data.conversationId;
         const reportToken = res.data.report?.id || res.data.report?.token || res.data.token || res.data.reportId;
-        if (reportToken) {
+        if (convoId) {
+          navigate(`/c/${convoId}`);
+        } else if (reportToken) {
           navigate(`/report/${reportToken}`);
         } else {
           alert('Failed to retrieve report token.');
@@ -170,9 +175,15 @@ export default function Dashboard() {
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-black/80" />
       </div>
 
+      {/* Conversation Sidebar */}
+      <ConversationSidebar
+        isOpenMobile={isSidebarOpen}
+        onCloseMobile={() => setIsSidebarOpen(false)}
+      />
+
       {/* Main Content Area */}
       <div className="relative z-10 flex-1 flex flex-col">
-        <Navbar />
+        <Navbar onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
 
         {/* Hero Area */}
         <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 text-center -translate-y-[5%] max-w-4xl mx-auto w-full">

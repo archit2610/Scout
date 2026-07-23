@@ -21,9 +21,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshUser = useCallback(async () => {
     try {
-      const res = await api.get<User>('/api/v1/profile', { skipRedirect: true });
-      if (res.success) {
-        setUser(res.data);
+      const res = await api.get<any>('/api/v1/profile', { skipRedirect: true });
+      if (res.success && res.data) {
+        const userData = res.data.user || (res.data.username ? res.data : null);
+        setUser(userData);
       } else {
         setUser(null);
       }
@@ -51,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // proceed even if logout API fails
     }
     setUser(null);
-    navigate(ROUTES.LOGIN);
+    navigate(ROUTES.HOME);
   }, [navigate]);
 
   return (

@@ -9,9 +9,7 @@ import Register from './pages/Register';
 import VerifyEmail from './pages/VerifyEmail';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
-import Dashboard from './pages/Dashboard';
-import Report from './pages/Report';
-
+import ChatApp from './pages/ChatApp';
 import { ROUTES } from './lib/constants';
 
 function App() {
@@ -20,14 +18,18 @@ function App() {
       <BrowserRouter>
         <AuthProvider>
           <Routes>
-            {/* Public Routes */}
+            {/* Public Auth Routes */}
             <Route path={ROUTES.LOGIN} element={<Login />} />
             <Route path={ROUTES.REGISTER} element={<Register />} />
             <Route path={ROUTES.VERIFY_EMAIL} element={<VerifyEmail />} />
             <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPassword />} />
             <Route path={ROUTES.RESET_PASSWORD} element={<ResetPassword />} />
-            <Route path={ROUTES.DASHBOARD} element={<Dashboard />} />
-            <Route path={ROUTES.REPORT} element={<Report />} />
+
+            {/* Chat Application Routes (ChatGPT / Claude Style Shell) */}
+            <Route path={ROUTES.HOME} element={<ChatApp />} />
+            <Route path={ROUTES.DASHBOARD} element={<ChatApp />} />
+            <Route path={ROUTES.CONVERSATION} element={<ChatApp />} />
+            <Route path={ROUTES.REPORT} element={<ChatApp />} />
 
             {/* Protected Routes (none for now, but keeping container if needed for other routes) */}
             <Route element={<ProtectedRoute />}>

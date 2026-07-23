@@ -49,9 +49,12 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new ApiError(400, "All fields are required")
   };
 
+  console.log("1");
   const exsistinguser = await findUserByEmail(email);
+  console.log("2")
 
   if (exsistinguser) {
+    console.log("exsisting user found")
     throw new ApiError(400, "User with same email already exsists");
   }
 
@@ -61,6 +64,7 @@ const registerUser = asyncHandler(async (req, res) => {
     password,
   });
 
+  if (user) console.log("new user created")
   const { unHashedToken, hashedToken, tokenExpiry } = generateTemporaryToken()
 
   await updateUser(user.id, {
@@ -76,6 +80,16 @@ const registerUser = asyncHandler(async (req, res) => {
       `/api/v1/verify/${unHashedToken}`
     ),
   });
+
+  const tempId = req.cookies?.[GUEST_COOKIE_NAME];
+  if (tempId) {
+    await migrateGuestConversationsToUser(tempId, user.id);
+    res.clearCookie(GUEST_COOKIE_NAME, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+    });
+  }
 
   const newuser = await findUserById(user.id);
 
@@ -106,7 +120,11 @@ const loginUser = asyncHandler(async (req, res) => {
   const tempId = req.cookies?.[GUEST_COOKIE_NAME];
   if (tempId) {
     await migrateGuestConversationsToUser(tempId, user.id);
-    res.clearCookie(GUEST_COOKIE_NAME);
+    res.clearCookie(GUEST_COOKIE_NAME, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+    });
   }
 
   const accessToken = await generateAccessToken(user);

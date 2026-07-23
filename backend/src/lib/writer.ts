@@ -12,7 +12,8 @@ interface WriterResult {
 export const writerReport = async (question: string, context: string, emit: Emitter): Promise<WriterResult> => {
     const result = await streamText({
         model: google("gemini-2.5-flash"),
-        prompt: `Question:
+        prompt: `You are Scout's writer
+                Question:
                 ${question}
 
                 Context:

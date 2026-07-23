@@ -13,7 +13,7 @@ app.use(cookieparser());
 
 app.use("/api/v1/", Authentication)
 app.use("/api/v1/auth/", Reports)
-app.use("/api/v1/conversation/", Conversation)
+app.use("/api/v1/conversations/", Conversation)
 
 
 app.use((err: ApiError, req: express.Request, res: express.Response, next: express.NextFunction) => {

@@ -43,11 +43,13 @@ export const createResearch = asyncHandler(async (req: Request, res: Response) =
 
 
 export const getAllReports = asyncHandler(async (req, res) => {
-    const reports = await getReportsByUser(req.user!.id)
+    if (!req.user?.id) {
+        return res.status(200).json(new ApiResponse(200, { reports: [] }, "question fetched"));
+    }
+    const reports = await getReportsByUser(req.user.id)
     if (!reports) throw new ApiError(400, "Unable to fetch")
 
     res.status(200).json(new ApiResponse(200, { reports }, "question fetched"))
-
 })
 
 export const getReport = asyncHandler(async (req, res) => {

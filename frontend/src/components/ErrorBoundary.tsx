@@ -55,7 +55,12 @@ export default class ErrorBoundary extends Component<Props, State> {
             An unexpected error occurred. Please try again.
           </p>
           <a
-            href="/dashboard"
+            href="/"
+            onClick={(e) => {
+              e.preventDefault();
+              this.setState({ hasError: false });
+              window.location.href = '/';
+            }}
             className="scout-btn-primary"
             style={{
               display: 'inline-block',
@@ -70,7 +75,7 @@ export default class ErrorBoundary extends Component<Props, State> {
               color: '#000000',
             }}
           >
-            Go to dashboard
+            Return to Scout
           </a>
         </div>
       );

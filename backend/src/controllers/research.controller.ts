@@ -4,15 +4,14 @@ import { getReportById, updateReport } from "../services/report.service.js";
 import { ApiError } from "../utils/api-error.js";
 import { runScout } from "../services/agent.service.js";
 import { createConversation } from "../services/conversation.service.js";
-import { error } from "console";
 
 export const runReport = asyncHandler(async (req: Request, res: Response) => {
     const { token } = req.params;
-    if (!token) throw new ApiError(400, "error while fetching the question")
+    if (!token) throw new ApiError(400, "Report token is required");
 
     const report = await getReportById(token as string);
 
-    if (!report || report.userId !== req.user!.id) {
+    if (!report || (report.userId && req.user?.id && report.userId !== req.user.id)) {
         throw new ApiError(404, "Report not found");
     }
 
@@ -20,8 +19,12 @@ export const runReport = asyncHandler(async (req: Request, res: Response) => {
     let conversationId = report.conversationId;
 
     if (!conversationId) {
-        const convo = await createConversation({ userId: req.user!.id }, report.question);
-        if (!convo) throw new ApiError(400, "error while fetching the question")
+        const convoPayload: { userId?: string; guestTempId?: string } = {};
+        if (req.user?.id) convoPayload.userId = req.user.id;
+        if (req.guestTempId) convoPayload.guestTempId = req.guestTempId;
+
+        const convo = await createConversation(convoPayload, report.question);
+        if (!convo) throw new ApiError(400, "Failed to create conversation");
         conversationId = convo.id;
         await updateReport(reportId, { conversationId });
     }
