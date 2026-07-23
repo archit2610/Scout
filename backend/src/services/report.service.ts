@@ -3,8 +3,14 @@ import { reports, type Report } from "../db/schema.js";
 import { eq, desc } from "drizzle-orm";
 import { ApiError } from "../utils/api-error.js";
 
-export const createReport = async (userId: string, question: string): Promise<Report> => {
-    const [report] = await db.insert(reports).values({ userId, question }).returning()
+interface createReportOptions {
+    userId?: string | undefined;
+    question: string;
+    conversationId: string;
+}
+
+export const createReport = async ({ userId, question, conversationId }: createReportOptions): Promise<Report> => {
+    const [report] = await db.insert(reports).values({ userId, question, conversationId }).returning()
 
     if (!report)
         throw new ApiError(400, "Quesry not reigstered")

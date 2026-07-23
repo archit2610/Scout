@@ -55,7 +55,7 @@ export const fetchAndExtract = async (results: SearchResult[], question: string)
 
     const extraction = await generateText({
         model: google("gemini-2.5-flash"),
-        prompt: `
+        prompt: `  You are Scout's information extraction system.
                 Question:
                 ${question}
 

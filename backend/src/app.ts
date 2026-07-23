@@ -3,8 +3,8 @@ import cookieparser from "cookie-parser";
 import cors from "cors";
 import Authentication from "./routes/auth.routes.js";
 import Reports from "./routes/report.router.js";
+import Conversation from "./routes/conversation.router.js"
 import { ApiError } from "./utils/api-error.js";
-
 const app = express();
 
 app.use(cors({ origin: process.env.CORS_ORIGIN, credentials: true }))
@@ -13,6 +13,7 @@ app.use(cookieparser());
 
 app.use("/api/v1/", Authentication)
 app.use("/api/v1/auth/", Reports)
+app.use("/api/v1/conversations/", Conversation)
 
 
 app.use((err: ApiError, req: express.Request, res: express.Response, next: express.NextFunction) => {

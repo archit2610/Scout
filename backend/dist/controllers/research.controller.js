@@ -1,7 +1,8 @@
 import { asyncHandler } from "../utils/async-handler.js";
-import { getReportById, updateReport } from "../services/report.js";
+import { getReportById, updateReport } from "../services/report.service.js";
 import { ApiError } from "../utils/api-error.js";
-import { runResearch } from "../services/agent.js";
+import { runScout } from "../services/agent.service.js";
+import { createConversation } from "../services/conversation.service.js";
 export const runReport = asyncHandler(async (req, res) => {
     const { token } = req.params;
     if (!token)
@@ -11,6 +12,14 @@ export const runReport = asyncHandler(async (req, res) => {
         throw new ApiError(404, "Report not found");
     }
     const reportId = report.id;
+    let conversationId = report.conversationId;
+    if (!conversationId) {
+        const convo = await createConversation({ userId: req.user.id }, report.question);
+        if (!convo)
+            throw new ApiError(400, "error while fetching the question");
+        conversationId = convo.id;
+        await updateReport(reportId, { conversationId });
+    }
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
@@ -19,7 +28,7 @@ export const runReport = asyncHandler(async (req, res) => {
         res.write(`data: ${JSON.stringify(data)}\n\n`);
     };
     try {
-        const Report = await runResearch(report.question, emit);
+        const Report = await runScout({ question: report.question, conversationId, reportId, emit });
         await updateReport(reportId, {
             reportMd: Report.reportMd,
             tokensUsed: Report.tokensUsed,
@@ -27,7 +36,7 @@ export const runReport = asyncHandler(async (req, res) => {
             status: "done",
         });
         emit({
-            type: "done",
+            type: "done", conversationId, reportId
         });
         res.end();
     }
@@ -41,7 +50,8 @@ export const runReport = asyncHandler(async (req, res) => {
     }
 });
 export const anonymousrun = asyncHandler(async (req, res) => {
-    const { question } = req.body;
+    const { question, conversationId: incomingConvoId } = req.body;
+    const guestTempId = req.guestTempId || req.cookies?.scout_temp_id;
     if (!question || typeof question !== "string") {
         throw new ApiError(400, "Question is required");
     }
@@ -53,7 +63,14 @@ export const anonymousrun = asyncHandler(async (req, res) => {
         res.write(`data: ${JSON.stringify(data)}\n\n`);
     };
     try {
-        const Report = await runResearch(question, emit);
+        let conversationId = incomingConvoId;
+        if (!conversationId) {
+            const convo = await createConversation({ guestTempId }, question);
+            if (!convo)
+                throw new ApiError(400, "failed in creating new conversation");
+            conversationId = convo.id;
+        }
+        const Report = await runScout({ question, conversationId, emit });
         emit({
             type: "done",
         });

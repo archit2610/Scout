@@ -9,25 +9,47 @@ import {
     updateReport,
     deletereport
 } from "../services/report.service.js";
+import { createConversation } from "../services/conversation.service.js";
 
-export const createResearch = asyncHandler(async (req, res) => {
-    const { question } = req.body
+export const createResearch = asyncHandler(async (req: Request, res: Response) => {
+    const { question, conversationId: incomingConvoId } = req.body;
+    if (!question) throw new ApiError(400, "Please enter a question");
+    let conversationId = incomingConvoId;
+    if (!conversationId) {
+        const conversationPayload: { userId?: string; guestTempId?: string } = {};
 
-    if (!question) throw new ApiError(400, "please enter question")
+        if (req.user?.id) {
+            conversationPayload.userId = req.user.id;
+        }
 
-    const report = await createReport(req.user!.id, question.trim())
-    if (!report) throw new ApiError(400, "please enter question")
+        if (req.guestTempId) {
+            conversationPayload.guestTempId = req.guestTempId;
+        }
 
-    res.status(200).json(new ApiResponse(200, { report }, "question stored"))
+        const convo = await createConversation(
+            conversationPayload,
+            question.trim()
+        );
+        if (!convo) throw new ApiError(400, "failed at creating a conversation");
+        conversationId = convo.id;
+    }
+    const report = await createReport({
+        ...(req.user?.id ? { userId: req.user.id } : {}),
+        question: question.trim(),
+        conversationId,
+    });
+    res.status(200).json(new ApiResponse(200, { report, conversationId }, "Question registered"));
+});
 
-})
 
 export const getAllReports = asyncHandler(async (req, res) => {
-    const reports = await getReportsByUser(req.user!.id)
+    if (!req.user?.id) {
+        return res.status(200).json(new ApiResponse(200, { reports: [] }, "question fetched"));
+    }
+    const reports = await getReportsByUser(req.user.id)
     if (!reports) throw new ApiError(400, "Unable to fetch")
 
     res.status(200).json(new ApiResponse(200, { reports }, "question fetched"))
-
 })
 
 export const getReport = asyncHandler(async (req, res) => {

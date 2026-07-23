@@ -14,15 +14,29 @@ export interface User {
   fullName?: string;
 }
 
+// === Conversation ===
+export interface Conversation {
+  id: string;
+  title: string;
+  userId?: string | null;
+  anonymousVisitorId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // === Report ===
 export type ReportStatus = 'pending' | 'running' | 'done' | 'error';
 
 export interface Report {
   id: string;
-  token: string;
+  token?: string;
+  conversationId?: string;
   question: string;
   status: ReportStatus;
   reportMd?: string;
+  usedMemory?: boolean;
+  tokensUsed?: number;
+  costUsd?: number;
   createdAt: string;
 }
 
