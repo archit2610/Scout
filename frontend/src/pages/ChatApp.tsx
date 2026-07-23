@@ -604,6 +604,24 @@ export default function ChatApp() {
             </button>
           </form>
         </div>
+
+        {/* Footer Area */}
+        <footer className="py-2 px-6 border-t border-white/5 bg-black/80 backdrop-blur-md shrink-0 flex flex-col sm:flex-row items-center justify-between gap-2 z-20">
+          <span className="text-white/40 text-[11px]">© 2026 Scout Inc. All rights reserved.</span>
+          <div className="flex items-center gap-4">
+            <a href="https://x.com/ArchitSa" target="_blank" rel="noopener noreferrer" className="text-white/40 hover:text-white transition-colors text-[11px]">
+              Twitter
+            </a>
+            <span className="text-white/20 text-[10px]">•</span>
+            <a href="https://github.com/archit2610/Scout" target="_blank" rel="noopener noreferrer" className="text-white/40 hover:text-white transition-colors text-[11px]">
+              GitHub
+            </a>
+            <span className="text-white/20 text-[10px]">•</span>
+            <a href="https://www.linkedin.com/in/archit-sarawagi-6b73872bb/" target="_blank" rel="noopener noreferrer" className="text-white/40 hover:text-white transition-colors text-[11px]">
+              LinkedIn
+            </a>
+          </div>
+        </footer>
       </div>
     </div>
   );
