@@ -1,230 +1,299 @@
-# 🔎 Scout — AI Research Agent
+# 🔎 Scout
 
-Scout is an AI-powered research agent built to deliver efficient, well-structured, and context-aware responses.
+Scout is an autonomous AI-powered research agent that transforms user questions into structured, source-backed research reports.
 
-Instead of sending every question through the same pipeline, Scout first plans how to approach a query and determines whether external information is required. When necessary, it searches the web, reads relevant sources, extracts useful context, and uses that information to generate a comprehensive response.
+Instead of simply answering prompts, Scout plans research, determines whether additional external information is required, searches and reads relevant sources, and generates a comprehensive report.
 
-Scout is built using the Vercel AI SDK with Google's Gemini models and has a full-stack architecture with authentication, persistent report storage, and an appealing user interface.
+With conversation memory, Scout can also understand follow-up questions and retrieve relevant information from previously generated reports.
 
-> 🚀 Scout V1 is live and actively being improved.
+---
 
 ## ✨ Features
 
-### 🧠 Intelligent Research Pipeline
+### 🧠 Autonomous Research Pipeline
 
 Scout uses a multi-stage research pipeline:
 
-1. **Planner** — Analyzes the user's question, determines whether external information is required, and breaks complex queries into searchable sub-questions.
-2. **Searcher** — If external information is required, Scout searches the web for relevant sources for each sub-question.
-3. **Reader** — Fetches and processes the discovered webpages, extracting useful information and building relevant context.
-4. **Writer** — Combines the original question with the gathered context to generate and stream a structured final response.
+User Question
+→ Memory Retrieval
+→ Research Planning
+→ Web Search (if required)
+→ Source Reading
+→ Report Generation
+→ Memory Storage
 
-If the Planner determines that external information is not required, Scout skips the Searcher and Reader stages and directly generates the response.
+The planner determines whether the existing conversation context is sufficient to answer the question. If additional information is required, Scout automatically performs external research before generating the report.
 
-```text
-                         ┌──────────────┐
-                         │  User Query  │
-                         └──────┬───────┘
-                                │
-                                ▼
-                         ┌──────────────┐
-                         │   Planner    │
-                         └──────┬───────┘
-                                │
-                    External context required?
-                         /              \
-                       Yes               No
-                        │                 │
-                        ▼                 │
-                  ┌──────────┐            │
-                  │ Searcher │            │
-                  └────┬─────┘            │
-                       │                  │
-                       ▼                  │
-                  ┌──────────┐            │
-                  │  Reader  │            │
-                  └────┬─────┘            │
-                       │                  │
-                       └────────┬─────────┘
-                                │
-                                ▼
-                         ┌──────────────┐
-                         │    Writer    │
-                         └──────┬───────┘
-                                │
-                                ▼
-                         ┌──────────────┐
-                         │ Final Report │
-                         └──────────────┘
-```
+---
+
+### 💬 Conversation-Based Research
+
+Every question asked in Scout represents a new research request.
+
+Each conversation contains a sequence of:
+
+- User questions
+- AI-generated research reports
+
+A generated report acts as the assistant's response within the conversation, allowing users to continue researching a topic naturally through follow-up questions.
+
+---
+
+### 🧠 Semantic Conversation Memory
+
+Scout uses embeddings and PostgreSQL with pgvector to provide long-term semantic memory.
+
+After generating a report:
+
+1. The report is split into semantic text chunks.
+2. Chunks are converted into vector embeddings.
+3. Embeddings are stored using pgvector.
+4. Future questions are embedded and compared against previous report chunks.
+5. The most relevant context is retrieved and provided to the research planner.
+
+This allows Scout to understand questions such as:
+
+> "What were the major risks you mentioned earlier?"
+
+without unnecessarily repeating the entire research process.
+
+---
+
+### 🔍 Intelligent Research Decisions
+
+Before performing external research, Scout considers:
+
+- The current user question
+- Relevant information retrieved from previous reports
+- Existing conversation context
+
+If the available information is sufficient, Scout generates the report directly.
+
+If additional information is required, the planner generates research sub-questions and triggers the web research pipeline.
+
+This reduces unnecessary searches while maintaining research quality.
+
+---
 
 ### 🌐 Web Research
 
-Scout automatically determines when a question requires external information.
+When external information is required, Scout:
 
-When research is required, it:
+1. Breaks complex questions into focused sub-questions.
+2. Searches the web for relevant sources.
+3. Deduplicates search results.
+4. Extracts and processes useful webpage content.
+5. Provides the gathered context to the report writer.
 
-- Generates relevant sub-questions
-- Searches the internet for relevant sources
-- Removes duplicate results
-- Reads and extracts useful webpage content
-- Builds context for the final response
+---
 
-This allows Scout to provide research-backed answers while avoiding unnecessary web searches for questions that can be answered directly.
+### 📡 Real-Time Streaming
 
-### ⚡ Streaming Responses
+Scout uses Server-Sent Events (SSE) to stream research progress and generated content to the frontend.
 
-Reports are streamed to the frontend as they are generated, allowing users to see the response in real time instead of waiting for the entire generation process to finish.
+Users can see stages such as:
 
-### 👤 Authentication
+- Planning research
+- Searching the web
+- Reading sources
+- Writing the report
 
-Scout includes an authentication system with:
+The generated report is streamed as it is produced.
 
-- User registration
-- Login and logout
-- Email verification
-- Access and refresh tokens
-- Automatic access-token refresh
-- Forgot/reset password functionality
-- Cookie-based authentication
+---
 
-### 👻 Anonymous Research
+### 👤 Authentication & Guest Support
 
-Users don't need to create an account just to try Scout.
+Scout supports both authenticated and guest research sessions.
 
-Anonymous users can ask questions and run the research pipeline without authentication.
+Authenticated users can maintain persistent conversations associated with their accounts.
 
-Logged-in users get additional functionality, including persistent report storage.
+Guest sessions can be identified using temporary session identifiers, allowing the conversation architecture to support anonymous usage without requiring authentication.
 
-### 📚 Saved Reports
+---
 
-Authenticated users can save their generated research reports and access them later.
+### 📊 Observability & Cost Tracking
 
-Scout can store report information including:
+Scout tracks information about AI operations, including:
 
-- Original question
-- Generated sub-questions
-- Final report
-- Research status
 - Token usage
-- Estimated cost
+- Estimated model cost
+- Tool invocations
+- Research execution
+- Memory usage
 
-### 🗄️ Database
+This provides visibility into the behavior and operational cost of the research pipeline.
 
-Scout uses PostgreSQL with a structured database architecture for storing application data.
-
-The database currently includes schemas for:
-
-- Users
-- Reports
-- Tool calls / observability
-- Application settings
-
-The database layer is managed using Drizzle ORM.
-
-### 🛡️ Production Safeguards
-
-Scout includes safeguards designed to keep the research pipeline controlled and reliable:
-
-- Maximum sub-question limits
-- Search result limits
-- Context-size guards
-- Request timeouts
-- LLM usage tracking
-- Error handling
-
-## 🛠️ Tech Stack
-
-### Frontend
-
-- React
-- TypeScript
-- Vite
-- Tailwind CSS
-- React Router
-- React Markdown
-
-### Backend
-
-- Node.js
-- Express
-- TypeScript
-- Vercel AI SDK
-- Google Gemini
-- Server-Sent Events (SSE)
-
-### Database
-
-- PostgreSQL
-- Drizzle ORM
-
-### Research
-
-- Web search integration
-- Custom webpage extraction and reading pipeline
-
-### Deployment
-
-- Frontend deployed on Vercel
-- Backend deployed on Render
-- Cloud-hosted PostgreSQL database
+---
 
 ## 🏗️ Architecture
 
-```text
-React Frontend
+The core Scout pipeline:
+
+User Question
+      ↓
+Retrieve Relevant Memory
+      ↓
+Research Planner
+      ↓
+Is Existing Context Sufficient?
       │
-      │ REST API / SSE
-      ▼
-Express + TypeScript Backend
+      ├── Yes ──────────────→ Report Writer
       │
-      ├── Authentication
-      │
-      ├── Reports
-      │
-      └── AI Research Agent
-                │
-                ├── Planner
-                ├── Searcher
-                ├── Reader
-                └── Writer
-                      │
-                      ▼
-                 Google Gemini
+      └── No
+           ↓
+      Generate Sub-Questions
+           ↓
+        Web Search
+           ↓
+       Source Reader
+           ↓
+       Report Writer
+           ↓
+     Generated Report
+           ↓
+     Save to Conversation
+           ↓
+       Chunk Report
+           ↓
+     Generate Embeddings
+           ↓
+      Store in pgvector
 
-Backend
-   │
-   ▼
-PostgreSQL
-```
+The V2 memory system was designed as a layer around the original Scout research pipeline, allowing the existing planner, searcher, reader, and writer architecture to remain intact.
 
-## 🚀 Scout V1
+---
 
-Scout V1 establishes the foundation for a more capable research agent.
+## 🛠️ Tech Stack
 
-The current version focuses on:
+### Backend
 
-- Intelligent query planning
-- Conditional web research
-- Automated source reading
-- Structured report generation
-- Real-time streaming
-- User authentication
-- Persistent report storage
-- Anonymous usage
+- TypeScript
+- Node.js
+- Express.js
+- PostgreSQL
+- pgvector
+- Drizzle ORM
 
-## 🔮 Future Plans
+### AI
 
-Some ideas being explored for future versions include:
+- Vercel AI SDK
+- Google Gemini
+- Gemini Embeddings
 
-- Follow-up questions
-- Conversational research sessions
-- Embeddings and semantic search
-- Retrieval from previous research
-- Improved source citations
-- Better research memory
-- More advanced agent workflows
-- Additional model support
+### Architecture
+
+- Autonomous research pipeline
+- Retrieval-Augmented Generation (RAG)
+- Vector similarity search
+- Semantic conversation memory
+- Server-Sent Events (SSE)
+
+### Infrastructure
+
+- Docker
+- PostgreSQL + pgvector
+- Vercel
+- Render
+
+---
+
+## 🗃️ Core Data Model
+
+### Conversations
+
+Stores individual research conversations and their ownership.
+
+A conversation can belong to:
+
+- An authenticated user
+- A temporary guest session
+
+### Reports
+
+Each user question creates a report request.
+
+Reports store research-specific information such as:
+
+- Question
+- Generated report
+- Research status
+- Sub-questions
+- Citations
+- Token usage
+- Cost
+- Memory usage
+
+### Memory Chunks
+
+Generated reports are divided into chunks and embedded for semantic retrieval.
+
+Each chunk contains:
+
+- Original content
+- Vector embedding
+- Conversation ID
+- Source type
+- Source ID
+- Token count
+
+This allows relevant sections of previous reports to be retrieved for future questions.
+
+---
+
+## 🚀 V2 — Conversation Memory
+
+Scout V2 introduces persistent conversation-based research and semantic memory.
+
+### Added
+
+- Conversation-based research sessions
+- Follow-up question support
+- Semantic report retrieval
+- Vector embeddings with pgvector
+- Report chunking with overlap
+- Cosine similarity search
+- Context-aware research planning
+- Guest conversation architecture
+- Conversation ownership handling
+- Cascading conversation cleanup
+
+### V2 Research Flow
+
+Question
+→ Retrieve Previous Relevant Reports
+→ Run Scout Research Pipeline
+→ Generate Report
+→ Save Report to Conversation
+→ Embed Report
+→ Use as Memory for Future Questions
+
+The core design principle remains simple:
+
+> Every user question is a research request, and every generated report is the assistant's response within that conversation.
+
+---
+
+## 🔮 Future Improvements
+
+- Persistent anonymous conversation history across browser sessions
+- Automatic migration of guest conversations after signup
+- Cross-conversation semantic search
+- Improved conversation summarization
+- Advanced memory ranking
+- Hybrid keyword + vector retrieval
+- Source credibility scoring
+- Improved research observability
+
+---
+
+## 📌 Project Status
+
+Scout is under active development.
+
+V1 established the autonomous research pipeline.
+
+V2 extends the existing architecture with conversation-based research and semantic memory without replacing the original research pipeline.
 
 ## 🌐 Live Demo
 
@@ -232,8 +301,7 @@ Some ideas being explored for future versions include:
 
 ## 📸 Screenshots
 
-<img width="1767" height="943" alt="image" src="https://github.com/user-attachments/assets/cc75e487-7dc2-48d0-8385-5fbcb8d3d231" />
-
+<img width="1857" height="977" alt="image" src="https://github.com/user-attachments/assets/8426580a-d937-4400-9309-5c0632d098df" />
 
 ## 👨‍💻 Author
 
