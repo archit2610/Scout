@@ -121,8 +121,6 @@ export default function ChatApp() {
 
   // Load thread history by conversation ID
   const loadThreadHistory = async (convoId: string) => {
-    setPageState('loading');
-    setErrorMessage('');
     try {
       let res;
       try {
@@ -130,16 +128,13 @@ export default function ChatApp() {
       } catch {
         res = await api.get<{ reports: Report[] }>(`/api/v1/conversation/${convoId}/reports`);
       }
-      if (res.success && res.data) {
-        setReportsThread(res.data.reports || []);
-        setPageState('done');
-      } else {
-        setErrorMessage(res.message || 'Failed to load thread history.');
-        setPageState('error');
+      if (res.success && res.data && Array.isArray(res.data.reports) && res.data.reports.length > 0) {
+        setReportsThread(res.data.reports);
       }
+      setPageState('done');
     } catch (err: any) {
-      setErrorMessage(err.message || 'Error loading thread.');
-      setPageState('error');
+      console.error('Failed to load thread history:', err);
+      setPageState('done');
     }
   };
 
@@ -228,15 +223,32 @@ export default function ChatApp() {
                 setStreamingContent((prev) => prev + (payload.data || ''));
               } else if (payload.type === 'done') {
                 setSteps((prev) => prev.map(step => ({ ...step, status: 'completed' as const })));
-                if (payload.conversationId) {
-                  activeConvoFromStream = payload.conversationId;
-                  setActiveConvoId(payload.conversationId);
-                  window.history.pushState({}, '', `/c/${payload.conversationId}`);
+                const cId = payload.conversationId || activeConvoFromStream || targetConvoId;
+
+                setStreamingContent((currentContent) => {
+                  if (currentContent) {
+                    setReportsThread((prev) => [
+                      ...prev,
+                      {
+                        id: `anon_${Date.now()}`,
+                        question: q,
+                        status: 'done',
+                        reportMd: currentContent,
+                        conversationId: cId,
+                        createdAt: new Date().toISOString(),
+                      }
+                    ]);
+                  }
+                  return '';
+                });
+
+                if (cId) {
+                  activeConvoFromStream = cId;
+                  setActiveConvoId(cId);
+                  window.history.pushState({}, '', `/c/${cId}`);
+                  loadThreadHistory(cId);
                 }
                 setPageState('done');
-                if (activeConvoFromStream) {
-                  loadThreadHistory(activeConvoFromStream);
-                }
                 return;
               } else if (payload.type === 'error') {
                 setErrorMessage(payload.message || 'Research failed.');
@@ -285,6 +297,27 @@ export default function ChatApp() {
           closeSSE();
           setSteps((prev) => prev.map(step => ({ ...step, status: 'completed' as const })));
           const cId = payload.conversationId || targetConvoId || activeConvoId;
+
+          setStreamingContent((currentContent) => {
+            if (currentContent) {
+              setReportsThread((prev) => {
+                if (payload.reportId && prev.some(r => r.id === payload.reportId)) return prev;
+                return [
+                  ...prev,
+                  {
+                    id: payload.reportId || `sse_${Date.now()}`,
+                    question: activeRunQuestion,
+                    status: 'done',
+                    reportMd: currentContent,
+                    conversationId: cId,
+                    createdAt: new Date().toISOString(),
+                  }
+                ];
+              });
+            }
+            return '';
+          });
+
           if (cId) {
             setActiveConvoId(cId);
             window.history.pushState({}, '', `/c/${cId}`);
